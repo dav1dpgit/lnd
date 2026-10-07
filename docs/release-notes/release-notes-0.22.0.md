@@ -62,6 +62,16 @@
 
 ## Functional Enhancements
 
+* Zero-conf and scid-alias channels can now be [negotiated explicitly with
+  the static remote key (tweakless) commitment
+  type](https://github.com/lightningnetwork/lnd/pull/XXXXX), without anchors.
+  The fundee side already tolerated a zero-conf channel without anchors for
+  compatibility with LDK; the opener side now offers the same channel types
+  (`zero_conf` and `scid_alias` on `OpenChannel` with
+  `commitment_type=STATIC_REMOTE_KEY`), so an LND node can open a zero-conf
+  tweakless channel to a peer that asks for one. Nothing changes for callers
+  that do not request these types.
+
 ## RPC Additions
 
 * The `routerrpc.EstimateRouteFee` RPC now supports [restricting fee estimates
