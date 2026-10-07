@@ -231,6 +231,58 @@ func explicitNegotiateCommitmentType(channelType lnwire.ChannelType, local,
 		}
 		return lnwallet.CommitmentTypeTweakless, nil
 
+	// Static remote key + zero conf + scid alias features only (no
+	// anchors). The fundee side already tolerates a zero-conf channel
+	// without anchors (see funding manager: "We don't require anchors
+	// here - this is for compatibility with LDK"); these cases let the
+	// same channel be negotiated explicitly, so an LND node can open a
+	// zero-conf tweakless channel to a peer that asks for one.
+	case channelFeatures.OnlyContains(
+		lnwire.ZeroConfRequired,
+		lnwire.ScidAliasRequired,
+		lnwire.StaticRemoteKeyRequired,
+	):
+		if !hasFeatures(
+			local, remote,
+			lnwire.ZeroConfOptional,
+			lnwire.ScidAliasOptional,
+			lnwire.StaticRemoteKeyOptional,
+		) {
+
+			return 0, errUnsupportedChannelType
+		}
+		return lnwallet.CommitmentTypeTweakless, nil
+
+	// Static remote key + zero conf features only (no anchors).
+	case channelFeatures.OnlyContains(
+		lnwire.ZeroConfRequired,
+		lnwire.StaticRemoteKeyRequired,
+	):
+		if !hasFeatures(
+			local, remote,
+			lnwire.ZeroConfOptional,
+			lnwire.StaticRemoteKeyOptional,
+		) {
+
+			return 0, errUnsupportedChannelType
+		}
+		return lnwallet.CommitmentTypeTweakless, nil
+
+	// Static remote key + scid alias features only (no anchors).
+	case channelFeatures.OnlyContains(
+		lnwire.ScidAliasRequired,
+		lnwire.StaticRemoteKeyRequired,
+	):
+		if !hasFeatures(
+			local, remote,
+			lnwire.ScidAliasOptional,
+			lnwire.StaticRemoteKeyOptional,
+		) {
+
+			return 0, errUnsupportedChannelType
+		}
+		return lnwallet.CommitmentTypeTweakless, nil
+
 	// Simple taproot channels only (final feature bits).
 	case channelFeatures.OnlyContains(
 		lnwire.SimpleTaprootChannelsRequiredFinal,

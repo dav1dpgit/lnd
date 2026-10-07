@@ -206,6 +206,101 @@ func TestCommitmentTypeNegotiation(t *testing.T) {
 			expectsErr: nil,
 		},
 		{
+			name: "explicit zero-conf scid-alias tweakless",
+			channelFeatures: lnwire.NewRawFeatureVector(
+				lnwire.ZeroConfRequired,
+				lnwire.ScidAliasRequired,
+				lnwire.StaticRemoteKeyRequired,
+			),
+			localFeatures: lnwire.NewRawFeatureVector(
+				lnwire.ZeroConfOptional,
+				lnwire.ScidAliasOptional,
+				lnwire.StaticRemoteKeyRequired,
+				lnwire.AnchorsZeroFeeHtlcTxOptional,
+			),
+			remoteFeatures: lnwire.NewRawFeatureVector(
+				lnwire.ZeroConfOptional,
+				lnwire.ScidAliasOptional,
+				lnwire.StaticRemoteKeyOptional,
+			),
+			expectsCommitType: lnwallet.CommitmentTypeTweakless,
+			expectsChanType: (*lnwire.ChannelType)(
+				lnwire.NewRawFeatureVector(
+					lnwire.ZeroConfRequired,
+					lnwire.ScidAliasRequired,
+					lnwire.StaticRemoteKeyRequired,
+				),
+			),
+			zeroConf:   true,
+			scidAlias:  true,
+			expectsErr: nil,
+		},
+		{
+			name: "explicit zero-conf tweakless",
+			channelFeatures: lnwire.NewRawFeatureVector(
+				lnwire.ZeroConfRequired,
+				lnwire.StaticRemoteKeyRequired,
+			),
+			localFeatures: lnwire.NewRawFeatureVector(
+				lnwire.ZeroConfOptional,
+				lnwire.StaticRemoteKeyRequired,
+				lnwire.AnchorsZeroFeeHtlcTxOptional,
+			),
+			remoteFeatures: lnwire.NewRawFeatureVector(
+				lnwire.ZeroConfOptional,
+				lnwire.StaticRemoteKeyOptional,
+			),
+			expectsCommitType: lnwallet.CommitmentTypeTweakless,
+			expectsChanType: (*lnwire.ChannelType)(
+				lnwire.NewRawFeatureVector(
+					lnwire.ZeroConfRequired,
+					lnwire.StaticRemoteKeyRequired,
+				),
+			),
+			zeroConf:   true,
+			expectsErr: nil,
+		},
+		{
+			name: "explicit scid-alias tweakless",
+			channelFeatures: lnwire.NewRawFeatureVector(
+				lnwire.ScidAliasRequired,
+				lnwire.StaticRemoteKeyRequired,
+			),
+			localFeatures: lnwire.NewRawFeatureVector(
+				lnwire.ScidAliasOptional,
+				lnwire.StaticRemoteKeyRequired,
+				lnwire.AnchorsZeroFeeHtlcTxOptional,
+			),
+			remoteFeatures: lnwire.NewRawFeatureVector(
+				lnwire.ScidAliasOptional,
+				lnwire.StaticRemoteKeyOptional,
+			),
+			expectsCommitType: lnwallet.CommitmentTypeTweakless,
+			expectsChanType: (*lnwire.ChannelType)(
+				lnwire.NewRawFeatureVector(
+					lnwire.ScidAliasRequired,
+					lnwire.StaticRemoteKeyRequired,
+				),
+			),
+			scidAlias:  true,
+			expectsErr: nil,
+		},
+		{
+			name: "explicit zero-conf tweakless without remote zero-conf",
+			channelFeatures: lnwire.NewRawFeatureVector(
+				lnwire.ZeroConfRequired,
+				lnwire.StaticRemoteKeyRequired,
+			),
+			localFeatures: lnwire.NewRawFeatureVector(
+				lnwire.ZeroConfOptional,
+				lnwire.StaticRemoteKeyRequired,
+			),
+			remoteFeatures: lnwire.NewRawFeatureVector(
+				lnwire.StaticRemoteKeyOptional,
+			),
+			expectsErr: errUnsupportedChannelType,
+		},
+		{
 			name: "explicit tweakless",
 			channelFeatures: lnwire.NewRawFeatureVector(
 				lnwire.StaticRemoteKeyRequired,
