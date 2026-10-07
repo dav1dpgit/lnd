@@ -2326,9 +2326,19 @@ func (r *rpcServer) parseOpenChannelReq(in *lnrpc.OpenChannelRequest,
 
 	case lnrpc.CommitmentType_STATIC_REMOTE_KEY:
 		channelType = new(lnwire.ChannelType)
-		*channelType = lnwire.ChannelType(*lnwire.NewRawFeatureVector(
+		fv := lnwire.NewRawFeatureVector(
 			lnwire.StaticRemoteKeyRequired,
-		))
+		)
+
+		if in.ZeroConf {
+			fv.Set(lnwire.ZeroConfRequired)
+		}
+
+		if in.ScidAlias {
+			fv.Set(lnwire.ScidAliasRequired)
+		}
+
+		*channelType = lnwire.ChannelType(*fv)
 
 	case lnrpc.CommitmentType_ANCHORS:
 		channelType = new(lnwire.ChannelType)
