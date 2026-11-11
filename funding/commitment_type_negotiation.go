@@ -224,6 +224,56 @@ func explicitNegotiateCommitmentType(channelType lnwire.ChannelType, local,
 		}
 		return lnwallet.CommitmentTypeAnchorsZeroFeeHtlcTx, nil
 
+	// Static remote key + zero conf + scid alias features only (no
+	// anchors). Terminus patch: zero-conf JIT channels whose to_remote
+	// pays a plain P2WPKH. The fundee path already tolerates zero-conf
+	// without anchors ("for compatibility with LDK"); these cases extend
+	// the same tolerance to explicit negotiation.
+	case channelFeatures.OnlyContains(
+		lnwire.ZeroConfRequired,
+		lnwire.ScidAliasRequired,
+		lnwire.StaticRemoteKeyRequired,
+	):
+		if !hasFeatures(
+			local, remote,
+			lnwire.ZeroConfOptional,
+			lnwire.StaticRemoteKeyOptional,
+		) {
+
+			return 0, errUnsupportedChannelType
+		}
+		return lnwallet.CommitmentTypeTweakless, nil
+
+	// Static remote key + zero conf features only (no anchors).
+	case channelFeatures.OnlyContains(
+		lnwire.ZeroConfRequired,
+		lnwire.StaticRemoteKeyRequired,
+	):
+		if !hasFeatures(
+			local, remote,
+			lnwire.ZeroConfOptional,
+			lnwire.StaticRemoteKeyOptional,
+		) {
+
+			return 0, errUnsupportedChannelType
+		}
+		return lnwallet.CommitmentTypeTweakless, nil
+
+	// Static remote key + option-scid-alias features only (no anchors).
+	case channelFeatures.OnlyContains(
+		lnwire.ScidAliasRequired,
+		lnwire.StaticRemoteKeyRequired,
+	):
+		if !hasFeatures(
+			local, remote,
+			lnwire.ScidAliasOptional,
+			lnwire.StaticRemoteKeyOptional,
+		) {
+
+			return 0, errUnsupportedChannelType
+		}
+		return lnwallet.CommitmentTypeTweakless, nil
+
 	// Static remote key feature only.
 	case channelFeatures.OnlyContains(lnwire.StaticRemoteKeyRequired):
 		if !hasFeatures(local, remote, lnwire.StaticRemoteKeyOptional) {
