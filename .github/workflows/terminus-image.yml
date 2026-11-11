@@ -1,0 +1,59 @@
+name: Terminus image
+
+# Builds LND from this branch with LND's own Dockerfile — the same file and the same
+# `make release-install` the official lightninglabs/lnd image is built with — and
+# publishes it as ghcr.io/<owner>/lnd-terminus:<release>. The only difference from
+# the official image of the same release is the one commit on this branch.
+
+on:
+  push:
+    branches:
+      - 'v*-terminus'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Names
+        run: |
+          BR="${GITHUB_REF_NAME}"
+          echo "RELEASE=${BR%-terminus}" >> "$GITHUB_ENV"
+          echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/lnd-terminus" >> "$GITHUB_ENV"
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ env.IMAGE }}:${{ env.RELEASE }}
+          build-args: |
+            checkout=${{ github.sha }}
+            git_url=https://github.com/${{ github.repository }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.description=LND ${{ env.RELEASE }} plus one commit: zero-conf and scid-alias on static-remote-key channels
+
+      - name: Image digest
+        run: |
+          echo "${{ env.IMAGE }}:${{ env.RELEASE }}@${{ steps.build.outputs.digest }}"
+          echo "### ${{ env.IMAGE }}:${{ env.RELEASE }}@${{ steps.build.outputs.digest }}" >> "$GITHUB_STEP_SUMMARY"
