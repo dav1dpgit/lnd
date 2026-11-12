@@ -57,3 +57,55 @@ jobs:
         run: |
           echo "${{ env.IMAGE }}:${{ env.RELEASE }}@${{ steps.build.outputs.digest }}"
           echo "### ${{ env.IMAGE }}:${{ env.RELEASE }}@${{ steps.build.outputs.digest }}" >> "$GITHUB_STEP_SUMMARY"
+
+  # The same `make release-install`, run on the runner instead of in Docker, for nodes
+  # that run LND as a plain binary. Published as the GitHub release
+  # terminus-<release> with a sha256 file. A release that already exists is never
+  # overwritten: this step fails instead, and a new release needs a new name.
+  binary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 10
+
+      - name: Names
+        run: |
+          BR="${GITHUB_REF_NAME}"
+          echo "RELEASE=${BR%-terminus}" >> "$GITHUB_ENV"
+          echo "GO_VERSION=$(sed -n 's/^GO_VERSION = //p' Makefile)" >> "$GITHUB_ENV"
+
+      - name: Base release tag, for the version string
+        run: git fetch --depth=10 https://github.com/lightningnetwork/lnd "refs/tags/${RELEASE}:refs/tags/${RELEASE}"
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+
+      - name: Build lnd and lncli (linux-amd64)
+        run: make release-install
+
+      - name: Package
+        run: |
+          NAME="lnd-terminus-linux-amd64-${RELEASE}"
+          mkdir "$NAME"
+          cp "$(go env GOPATH)/bin/lnd" "$(go env GOPATH)/bin/lncli" "$NAME/"
+          "$NAME/lnd" --version
+          tar -czf "$NAME.tar.gz" "$NAME"
+          sha256sum "$NAME.tar.gz" > "$NAME.tar.gz.sha256"
+          cat "$NAME.tar.gz.sha256"
+          echo "### $(cat "$NAME.tar.gz.sha256")" >> "$GITHUB_STEP_SUMMARY"
+          echo "NAME=$NAME" >> "$GITHUB_ENV"
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="terminus-${RELEASE}"
+          gh release create "$TAG" "$NAME.tar.gz" "$NAME.tar.gz.sha256" \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "$TAG" \
+            --notes "LND ${RELEASE} plus one commit: zero-conf and scid-alias on static-remote-key channels (no anchors). Built from ${GITHUB_SHA} with LND's make release-install, Go ${GO_VERSION}, linux-amd64."
